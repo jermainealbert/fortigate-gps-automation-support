@@ -1,0 +1,159 @@
+# ============================================================
+# FortiGate GPS Automation - FortiManager Reference
+# FortiOS 7.6.7
+#
+# NOTE:
+# This file is for reference/documentation in GitHub.
+# The production copy is maintained in the FortiManager FE ADOM.
+# ============================================================
+
+
+# ============================================================
+# 1. Dedicated GPS automation administrator
+# ============================================================
+
+config system admin
+    edit "gps-automation"
+        set accprofile "prof_admin"
+        set trusthost1 10.1.0.130 255.255.255.255
+        set passwd "{{GPS_AUTOMATION_PASSWORD}}"
+    next
+end
+
+
+# ============================================================
+# 2. Scheduled triggers
+# ============================================================
+
+config system automation-trigger
+
+    edit "GPS-Schedule-0000"
+        set trigger-type scheduled
+        set trigger-frequency daily
+        set trigger-hour 0
+        set trigger-minute 0
+    next
+
+    edit "GPS-Schedule-0600"
+        set trigger-type scheduled
+        set trigger-frequency daily
+        set trigger-hour 6
+        set trigger-minute 0
+    next
+
+    edit "GPS-Schedule-1200"
+        set trigger-type scheduled
+        set trigger-frequency daily
+        set trigger-hour 12
+        set trigger-minute 0
+    next
+
+    edit "GPS-Schedule-1800"
+        set trigger-type scheduled
+        set trigger-frequency daily
+        set trigger-hour 18
+        set trigger-minute 0
+    next
+
+end
+
+
+# ============================================================
+# 3. Discover current WTP information
+# ============================================================
+
+config system automation-action
+
+    edit "GPS-WTP-Discovery"
+        set action-type cli-script
+        set accprofile "super_admin"
+        set script "diagnose wireless-controller wlac -c wtp"
+        set output-size 10
+        set timeout 30
+    next
+
+end
+
+
+# ============================================================
+# 4. Send WTP discovery output to Windows validator
+# ============================================================
+
+config system automation-action
+
+    edit "GPS-Send-WTP-Discovery"
+        set action-type webhook
+        set protocol http
+        set method post
+        set message-type json
+        set uri "10.1.0.130/api/gps/discovery/"
+        set port 8080
+        set http-body "{\"results\":\"%%results%%\"}"
+    next
+
+end
+
+
+# ============================================================
+# 5. Production automation stitches
+# ============================================================
+
+config system automation-stitch
+
+    edit "GPS-Update-0000"
+        set trigger "GPS-Schedule-0000"
+        config actions
+            edit 1
+                set action "GPS-WTP-Discovery"
+                set required enable
+            next
+            edit 2
+                set action "GPS-Send-WTP-Discovery"
+                set required enable
+            next
+        end
+    next
+
+    edit "GPS-Update-0600"
+        set trigger "GPS-Schedule-0600"
+        config actions
+            edit 1
+                set action "GPS-WTP-Discovery"
+                set required enable
+            next
+            edit 2
+                set action "GPS-Send-WTP-Discovery"
+                set required enable
+            next
+        end
+    next
+
+    edit "GPS-Update-1200"
+        set trigger "GPS-Schedule-1200"
+        config actions
+            edit 1
+                set action "GPS-WTP-Discovery"
+                set required enable
+            next
+            edit 2
+                set action "GPS-Send-WTP-Discovery"
+                set required enable
+            next
+        end
+    next
+
+    edit "GPS-Update-1800"
+        set trigger "GPS-Schedule-1800"
+        config actions
+            edit 1
+                set action "GPS-WTP-Discovery"
+                set required enable
+            next
+            edit 2
+                set action "GPS-Send-WTP-Discovery"
+                set required enable
+            next
+        end
+    next
+
+end
